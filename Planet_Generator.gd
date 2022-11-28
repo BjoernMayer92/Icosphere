@@ -135,7 +135,7 @@ func _ready():
 			icosahedron_face.append(icosahedron_vertices[icosahedron_vertices_index])
 		
 		# Divide Face
-		divide_face(icosahedron_face, icosahedron_face_index,2)
+		divide_face(icosahedron_face, icosahedron_face_index,0)
 		
 		# Add Face to scene
 		var icosahedron_face_array = []
@@ -146,8 +146,14 @@ func _ready():
 		icosahedron_face_array[ArrayMesh.ARRAY_VERTEX] = vertices_icosahedron_faces[icosahedron_face_index]
 	
 		icosahedron_face_array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, icosahedron_face_array)
+		icosahedron_face_array_mesh.regen_normalmaps()
 		icosahedron_face_meshinstance.mesh = icosahedron_face_array_mesh
 		
 		face_mesh_instances.append(icosahedron_face_meshinstance)
 		add_child(icosahedron_face_meshinstance)
-	
+		
+		var material = SpatialMaterial.new()
+		material.albedo_color = Color(randf(), randf(), randf())
+		icosahedron_face_meshinstance.set_surface_material(0,material)
+		
+		#material.albedo_color = Color(randf(), randf(), randf())
