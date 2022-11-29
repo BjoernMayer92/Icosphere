@@ -1,6 +1,7 @@
 extends Spatial
 
-var vertices_icosahedron_faces = []
+var vertices_icosahedron_faces_cartesian = []
+var vertices_icosahedron_faces_spherical = []
 var number_of_faces_in_icosahedron = 20
 
 func generate_icosahedron_mesh():
@@ -97,9 +98,13 @@ func divide_face(face, icosahedron_face_index, current_subdivision):
 	if current_subdivision==0:
 		for sub_face_indices in sub_faces_indices:
 			
-			vertices_icosahedron_faces[icosahedron_face_index].append(sub_vertices[sub_face_indices[0]])
-			vertices_icosahedron_faces[icosahedron_face_index].append(sub_vertices[sub_face_indices[1]])
-			vertices_icosahedron_faces[icosahedron_face_index].append(sub_vertices[sub_face_indices[2]])
+			vertices_icosahedron_faces_cartesian[icosahedron_face_index].append(sub_vertices[sub_face_indices[0]])
+			vertices_icosahedron_faces_cartesian[icosahedron_face_index].append(sub_vertices[sub_face_indices[1]])
+			vertices_icosahedron_faces_cartesian[icosahedron_face_index].append(sub_vertices[sub_face_indices[2]])
+
+			vertices_icosahedron_faces_spherical[icosahedron_face_index].append(cartesian_to_spherical(sub_vertices[sub_face_indices[0]]))
+			vertices_icosahedron_faces_spherical[icosahedron_face_index].append(cartesian_to_spherical(sub_vertices[sub_face_indices[1]]))
+			vertices_icosahedron_faces_spherical[icosahedron_face_index].append(cartesian_to_spherical(sub_vertices[sub_face_indices[2]]))
 
 	else:
 		for sub_face_indices in sub_faces_indices:
@@ -115,10 +120,12 @@ func divide_face(face, icosahedron_face_index, current_subdivision):
 
 
 func _ready():
-	vertices_icosahedron_faces.resize(number_of_faces_in_icosahedron)
-	for icosahedron_face_index in number_of_faces_in_icosahedron:
-		vertices_icosahedron_faces[icosahedron_face_index]=[]
+	vertices_icosahedron_faces_cartesian.resize(number_of_faces_in_icosahedron)
+	vertices_icosahedron_faces_spherical.resize(number_of_faces_in_icosahedron)
 	
+	for icosahedron_face_index in number_of_faces_in_icosahedron:
+		vertices_icosahedron_faces_cartesian[icosahedron_face_index]=[]
+		vertices_icosahedron_faces_spherical[icosahedron_face_index]=[]
 	# Generate Icosahedron
 	var icosahedron_array= generate_icosahedron_mesh()
 
@@ -135,7 +142,7 @@ func _ready():
 			icosahedron_face.append(icosahedron_vertices[icosahedron_vertices_index])
 		
 		# Divide Face
-		divide_face(icosahedron_face, icosahedron_face_index,0)
+		divide_face(icosahedron_face, icosahedron_face_index,3)
 		
 		# Add Face to scene
 		var icosahedron_face_array = []
@@ -143,7 +150,7 @@ func _ready():
 		var icosahedron_face_meshinstance = MeshInstance.new()
 		
 		icosahedron_face_array.resize(ArrayMesh.ARRAY_MAX)
-		icosahedron_face_array[ArrayMesh.ARRAY_VERTEX] = vertices_icosahedron_faces[icosahedron_face_index]
+		icosahedron_face_array[ArrayMesh.ARRAY_VERTEX] = vertices_icosahedron_faces_cartesian[icosahedron_face_index]
 	
 		icosahedron_face_array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, icosahedron_face_array)
 		icosahedron_face_array_mesh.regen_normalmaps()
@@ -156,4 +163,38 @@ func _ready():
 		material.albedo_color = Color(randf(), randf(), randf())
 		icosahedron_face_meshinstance.set_surface_material(0,material)
 		
-		#material.albedo_color = Color(randf(), randf(), randf())
+	
+	#print(to_json(vertices_icosahedron_faces))
+	
+	save(vertices_icosahedron_faces_cartesian,"data/grid_cartesian.json")
+	save(vertices_icosahedron_faces_spherical,"data/grid_spherical.json")
+	
+
+func spherical_to_cartesian(spherical: Vector3) -> Vector3:
+	
+	var rad = spherical.x
+	var lon = spherical.y
+	var lat = spherical.z
+	
+	var x = rad * cos(lat) * cos(lon)
+	var y = rad * cos(lat) * sin(lon)
+	var z = rad * sin(lat)
+	
+	return Vector3(x,y,z)
+	
+func cartesian_to_spherical(cartesian: Vector3) -> Vector3:
+	var x = cartesian.x
+	var y = cartesian.y
+	var z = cartesian.z
+	
+	var rad = sqrt(pow(x,2)+pow(y,2)+pow(z,2))
+	var lon = atan2(y, x)
+	var lat = asin(z/rad)
+	
+	return Vector3(rad, lon, lat)
+
+func save(data,FILE_NAME):
+	var file = File.new()
+	file.open(FILE_NAME, File.WRITE)
+	file.store_string(to_json(data))
+	file.close()
